@@ -16,7 +16,6 @@ import scala.util.{Failure, Success, Try}
 trait FileMonitor extends Logs {
 
   val baseDir: Path
-  val workDir: Path = Paths.get(".")
 
   override lazy val ignoredDirs: Set[String] = Set[String]()
   val startTime: Long = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7)
