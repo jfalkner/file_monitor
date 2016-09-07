@@ -1,6 +1,6 @@
 name := "file_monitor"
 
-version in ThisBuild := "0.0.2"
+version in ThisBuild := "0.0.3"
 
 organization in ThisBuild := "jfalkner"
 
@@ -26,7 +26,7 @@ libraryDependencies ++= Seq(
 
 lazy val file_monitor = (project in file(".")).dependsOn(file_backed_logs)
 
-lazy val file_backed_logs = RootProject(uri("https://github.com/jfalkner/file_backed_logs.git#v0.0.5"))
+lazy val file_backed_logs = RootProject(uri("https://github.com/jfalkner/file_backed_logs.git#v0.0.7"))
 
 // allow code coverage via - https://github.com/scoverage/sbt-scoverage
 //coverageEnabled := true
