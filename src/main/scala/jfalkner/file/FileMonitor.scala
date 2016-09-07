@@ -56,7 +56,7 @@ trait FileMonitor extends Logs {
     )
   }
 
-  def queue(all: Iterable[Considered]): Iterable[Try[Queued]] = all.map(c => Try(Queued(c.path, Instant.now(), "")))
+  def queue(all: Iterable[Considered]): Iterable[Try[Queued]] = all.map(c => Try(Queued(c.path)))
 
   // converts considered file path
   def trimFile(p: Path) : String = p.getFileName.toString
