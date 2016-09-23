@@ -28,6 +28,9 @@ trait FileMonitor extends Logs {
   val submitLogger = make[Queued](".submits.csv")
   val consideredLogger = make[Considered](".considered.csv")
 
+  // changing this to false enables automatic mode, where data is processed without requiring a movie or run override
+  val requireOverrides = true
+
   def autoQueue(): Status = {
     // consider all files and dirs to find changes of interest
     val events = considerAll()
@@ -94,7 +97,7 @@ trait FileMonitor extends Logs {
           Considered(p, false, Reasons.TOO_NEW)
         else if (lastModified < lastSubmit.getOrElse(p, Long.MinValue) && !forceSubmit)
           Considered(p, false, Reasons.ALREADY_SUBMITTED)
-        else if (dirOverrides.getOrElse(dirName, false) || fileOverrides.getOrElse(fileName, false))
+        else if (dirOverrides.getOrElse(dirName, !requireOverrides) || fileOverrides.getOrElse(fileName, !requireOverrides))
           Considered(p, true, Reasons.Nil)
         else
           Considered(p, false, Reasons.NEEDS_MANUAL_OVERRIDE)

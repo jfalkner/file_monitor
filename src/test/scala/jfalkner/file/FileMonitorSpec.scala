@@ -45,7 +45,31 @@ class FileMonitorSpec extends Specification {
         Set(Considered(mockSubreadSet, true, Reasons.Nil)) mustEqual ms.considerAll()
       }
     }
+    "Automatic mode works. No manual overrides required" in {
+      withCleanup { (basePath, workPath) =>
+        val (mockPath, mockSubreadSet) = mockData(basePath)
+        val ms = new TestFileMonitor(basePath, workPath) {
+          override val requireOverrides: Boolean = false
+        }
+        // calculated status should now be to include by default
+        Set(Considered(mockSubreadSet, true, Reasons.Nil)) mustEqual ms.considerAll()
+      }
+    }
     "Exclude files based on the time window" in {
+      withCleanup { (basePath, workPath) =>
+        val beforeMovie = System.currentTimeMillis()
+        val (mockPath, mockSubreadSet) = mockData(basePath)
+        // wait at least a millisecond so the time window is valid
+        Thread.sleep(1)
+        val afterMovie = System.currentTimeMillis()
+        // the movie should be excluded if the time window is after the movie's creation date
+        val excludeIt = new TestFileMonitor(mockPath, workPath, afterMovie, afterMovie + 1)  {
+          override val requireOverrides: Boolean = false
+        }
+        Set(Considered(mockSubreadSet, false, Reasons.TOO_OLD)) mustEqual excludeIt.considerAll()
+      }
+    }
+    "Automatic mode still respects time window exclusions" in {
       withCleanup { (basePath, workPath) =>
         val beforeMovie = System.currentTimeMillis()
         val (mockPath, mockSubreadSet) = mockData(basePath)
