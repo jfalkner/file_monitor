@@ -66,6 +66,9 @@ trait FileMonitor extends Logs {
 
   def trimDir(p: Path) : String = p.getParent.getFileName.toString
 
+  // helper map for movie and run overrides to show when they were last overriden
+  def overrideTimes() = (runLogger.load ++ movieLogger.load).toList.sortWith(_.ts.getNano < _.ts.getNano).map(v => (v.tsName, v)).toMap.filter(_._2.include).map{case (k, v) => k -> v.ts.toEpochMilli}
+
   // inspects all possible movies and calculates what action to take
   def considerAll(): Iterable[Considered] = {
 
@@ -74,7 +77,7 @@ trait FileMonitor extends Logs {
     val dirOverrides = runLogger.load.toList.sortWith(_.ts.toEpochMilli < _.ts.toEpochMilli).map(v => (v.tsName, v.include)).toMap
     val fileOverrides = movieLogger.load.toList.sortWith(_.ts.toEpochMilli < _.ts.toEpochMilli).map(v => (v.tsName, v.include)).toMap
     // map timing of latest override -- sort then map to only have latest, then convert map to tsName -> ts
-    val overrideTime = (runLogger.load ++ movieLogger.load).toList.sortWith(_.ts.getNano < _.ts.getNano).map(v => (v.tsName, v)).toMap.filter(_._2.include).map{case (k, v) => k -> v.ts.toEpochMilli}
+    val overrideTime = overrideTimes()
 
     // rules engine for determining if a movie should be queued and why
     def consider(p: Path): Considered = {
