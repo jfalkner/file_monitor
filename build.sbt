@@ -1,6 +1,6 @@
 name := "file_monitor"
 
-version in ThisBuild := "0.0.5"
+version in ThisBuild := "0.0.6"
 
 organization in ThisBuild := "jfalkner"
 
