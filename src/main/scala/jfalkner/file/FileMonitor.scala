@@ -23,8 +23,8 @@ trait FileMonitor extends Logs {
 
 
   // logs for persisting data
-  val runLogger = make[ManualOverride](".run.overrides.csv")
-  val movieLogger = make[ManualOverride](".movie.overrides.csv")
+  val dirLogger = make[ManualOverride](".run.overrides.csv")
+  val fileLogger = make[ManualOverride](".movie.overrides.csv")
   val submitLogger = make[Queued](".submits.csv")
   val consideredLogger = make[Considered](".considered.csv")
 
@@ -45,7 +45,7 @@ trait FileMonitor extends Logs {
     // save all considered, queued and submitted jobs
     consideredLogger.logAll(events)
     submitLogger.logAll(submits)
-    Seq(runLogger, movieLogger, submitLogger, consideredLogger).foreach(_.squash)
+    Seq(dirLogger, fileLogger, submitLogger, consideredLogger).foreach(_.squash)
 
     Status(
       events.size,
@@ -67,18 +67,19 @@ trait FileMonitor extends Logs {
   def trimDir(p: Path) : String = p.getParent.getFileName.toString
 
   // helper map for movie and run overrides to show when they were last overriden
-  def overrideTimes() = (runLogger.load ++ movieLogger.load).toList.sortWith(_.ts.getNano < _.ts.getNano).map(v => (v.tsName, v)).toMap.filter(_._2.include).map{case (k, v) => k -> v.ts.toEpochMilli}
+  lazy val overrideTime = (dirLogger.load ++ fileLogger.load).toList.sortWith(_.ts.toEpochMilli < _.ts.toEpochMilli).map(v => (v.tsName, v)).toMap.filter(_._2.include).map{case (k, v) => k -> v.ts.toEpochMilli}
+
+  // helper map for last submission
+  lazy val lastSubmit = submitLogger.load.toList.sortWith(_.ts.toEpochMilli < _.ts.toEpochMilli).map(v => (v.path, v.ts.toEpochMilli)).toMap
+
+  // helper map for last directory override
+  lazy val dirOverrides = dirLogger.load.toList.sortWith(_.ts.toEpochMilli < _.ts.toEpochMilli).map(v => (v.tsName, v.include)).toMap
+
+  // helper map for last file override
+  lazy val fileOverrides = fileLogger.load.toList.sortWith(_.ts.toEpochMilli < _.ts.toEpochMilli).map(v => (v.tsName, v.include)).toMap
 
   // inspects all possible movies and calculates what action to take
   def considerAll(): Iterable[Considered] = {
-
-    // map last smrtlink submission attempt to avoid resubmission
-    val lastSubmit = submitLogger.load.toList.sortWith(_.ts.getNano < _.ts.getNano).map(v => (v.path, v.ts.toEpochMilli)).toMap
-    val dirOverrides = runLogger.load.toList.sortWith(_.ts.toEpochMilli < _.ts.toEpochMilli).map(v => (v.tsName, v.include)).toMap
-    val fileOverrides = movieLogger.load.toList.sortWith(_.ts.toEpochMilli < _.ts.toEpochMilli).map(v => (v.tsName, v.include)).toMap
-    // map timing of latest override -- sort then map to only have latest, then convert map to tsName -> ts
-    val overrideTime = overrideTimes()
-
     // rules engine for determining if a movie should be queued and why
     def consider(p: Path): Considered = {
       val fileName = trimFile(p)

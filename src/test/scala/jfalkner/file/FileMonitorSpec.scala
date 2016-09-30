@@ -19,29 +19,29 @@ class FileMonitorSpec extends Specification {
     "Correctly identify one file and respective manual overrides for include/exclude" in {
       withCleanup { (basePath, workPath) =>
         val (mockPath, mockSubreadSet) = mockData(basePath)
-        val ms = new TestFileMonitor(basePath, workPath)
+        def ms = new TestFileMonitor(basePath, workPath)
         // calculated status should be to ignore by default
         Set(Considered(mockSubreadSet, false, Reasons.NEEDS_MANUAL_OVERRIDE)) mustEqual ms.considerAll()
         // manual override to include the run
-        ms.runLogger.log(new ManualOverride(runTsName))
+        ms.dirLogger.log(new ManualOverride(runTsName))
         Set(Considered(mockSubreadSet, true, Reasons.Nil)) mustEqual ms.considerAll()
         // manual override to exclude the movie
-        ms.movieLogger.log(new ManualOverride(movieTsName, include = false))
+        ms.fileLogger.log(new ManualOverride(movieTsName, include = false))
         Set(Considered(mockSubreadSet, false, Reasons.FILE_EXCLUDED)) mustEqual ms.considerAll()
         // manual override to exclude all movies in the run
         Thread.sleep(10)
-        ms.runLogger.log(new ManualOverride(runTsName, include = false))
+        ms.dirLogger.log(new ManualOverride(runTsName, include = false))
         Set(Considered(mockSubreadSet, false, Reasons.DIR_EXCLUDED)) mustEqual ms.considerAll()
         // manual override to include the movie
         Thread.sleep(10)
-        ms.movieLogger.log(new ManualOverride(movieTsName))
+        ms.fileLogger.log(new ManualOverride(movieTsName))
         Set(Considered(mockSubreadSet, true, Reasons.Nil)) mustEqual ms.considerAll()
         // mimic a submit log and confirm the same movie won't multi-submit
         ms.submitLogger.logAll(ms.queue(ms.considerAll()).flatMap(_.toOption))
         Set(Considered(mockSubreadSet, false, Reasons.ALREADY_SUBMITTED)) mustEqual ms.considerAll()
         // now override a movie submit and show it submits again
         Thread.sleep(10)
-        ms.movieLogger.log(new ManualOverride(movieTsName))
+        ms.fileLogger.log(new ManualOverride(movieTsName))
         Set(Considered(mockSubreadSet, true, Reasons.Nil)) mustEqual ms.considerAll()
       }
     }
