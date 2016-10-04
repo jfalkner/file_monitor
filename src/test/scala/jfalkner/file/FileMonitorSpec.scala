@@ -1,7 +1,7 @@
 package jfalkner.file
 
 import java.io.File
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.TimeUnit
 
 import org.apache.commons.io.FileUtils
@@ -96,6 +96,21 @@ class FileMonitorSpec extends Specification {
           successfulJobs = 0,
           failedJobs = 0,
           failureReasons = Set()) mustEqual new TestFileMonitor(basePath, workPath).autoQueue()
+      }
+    }
+    "Confirm clear() works so that old entries can be removed" in {
+      withCleanup { (basePath, workPath) =>
+        val (_, mockSubreadSet) = mockData(basePath)
+        def ms = new TestFileMonitor(basePath, workPath)
+        val (a, b) = (Considered(mockSubreadSet, false, Reasons.TOO_OLD), Considered(mockSubreadSet, true, Reasons.Nil))
+        ms.consideredLogger.log(a)
+        ms.consideredLogger.log(b)
+        // confirm two entries appear
+        ms.consideredLogger.load() mustEqual Set(a, b)
+        // clear old data
+        ms.consideredLogger.clear()
+        ms.consideredLogger.logAll(Seq(b))
+        ms.consideredLogger.load() mustEqual Set(b)
       }
     }
   }
