@@ -43,6 +43,7 @@ trait FileMonitor extends Logs {
       }
     }
     // save all considered, queued and submitted jobs
+    consideredLogger.clear()
     consideredLogger.logAll(events)
     submitLogger.logAll(submits)
     Seq(dirLogger, fileLogger, submitLogger, consideredLogger).foreach(_.squash)
