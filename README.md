@@ -73,5 +73,4 @@ sbt clean coverage test coverageReport
 ```
 
 You'll notice this is a well tested (90%+ coverage) and succinct
-codebase (~130 lines of code). Below is an example of the coverage
-report's main summary page. 
+codebase (~130 lines of code).
