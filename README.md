@@ -3,7 +3,8 @@
 Scala API for inspecting a directory recursively for new files and
 invoking an arbitrary `queue` operation on changed files or dirs. This 
 was originally built to support a DNA sequencing workflow where the 
-sequencers would periodically save data to a NFS location.
+sequencers would periodically save data to a NFS location and users
+wanted to detect new files and auto-generate analyses and reports.
  
 Main features:
  
