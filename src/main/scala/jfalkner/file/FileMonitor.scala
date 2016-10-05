@@ -33,7 +33,7 @@ trait FileMonitor extends Logs {
 
   def autoQueue(): Status = {
     // consider all files and dirs to find changes of interest
-    val events = considerAll()
+    val events = considerAll().toList.sortWith(_.lastModified.getEpochSecond > _.lastModified.getEpochSecond)
     // record all successfully queued jobs
     val submits = queue(events.filter(_.queue)).flatMap { _ match {
         case Success(submit) => Some(submit)
@@ -52,7 +52,7 @@ trait FileMonitor extends Logs {
       events.size,
       events.filter(_.queue).size,
       events.filter(!_.queue).size,
-      for (reason <- events.toSet[Considered].map(_.reason)) yield (reason, events.filter(_.reason == reason).size),
+      for (reason <- events.filter(!_.queue).toSet[Considered].map(_.reason)) yield (reason, events.filter(_.reason == reason).size),
       submits.size,
       submits.filter(_.error.isEmpty).size,
       submits.filter(!_.error.isEmpty).size,
@@ -85,27 +85,27 @@ trait FileMonitor extends Logs {
     def consider(p: Path): Considered = {
       val fileName = trimFile(p)
       val dirName = trimDir(p)
+      val lastModified = Files.getLastModifiedTime(p).toMillis
+      val lm = Instant.ofEpochMilli(lastModified)
       // check rules that don't require knowing the file's lastModified
       if (!dirOverrides.getOrElse(dirName, true) && !fileOverrides.getOrElse(fileName, false))
-        Considered(p, false, Reasons.DIR_EXCLUDED)
+        Considered(p, false, lm, dirName, fileName, Reasons.DIR_EXCLUDED)
       else if (!fileOverrides.getOrElse(fileName, true))
-        Considered(p, false, Reasons.FILE_EXCLUDED)
+        Considered(p, false, lm, dirName, fileName, Reasons.FILE_EXCLUDED)
       else {
-        // check rules that need the more expensive file attrs, namely lastModified
-        val lastModified = Files.getLastModifiedTime(p).toMillis
         // need to submit if it hasn't submitted since it was made or if an override was made after the last submit
         val forceSubmit = lastSubmit.getOrElse(p, Long.MinValue) < overrideTime.getOrElse(dirName, Long.MinValue) ||
           lastSubmit.getOrElse(p, Long.MinValue) < overrideTime.getOrElse(fileName, Long.MinValue)
         if (lastModified < startTime && !forceSubmit)
-          Considered(p, false, Reasons.TOO_OLD)
+          Considered(p, false, lm, dirName, fileName, Reasons.TOO_OLD)
         else if (lastModified > endTime && !forceSubmit)
-          Considered(p, false, Reasons.TOO_NEW)
+          Considered(p, false, lm, dirName, fileName, Reasons.TOO_NEW)
         else if (lastModified < lastSubmit.getOrElse(p, Long.MinValue) && !forceSubmit)
-          Considered(p, false, Reasons.ALREADY_SUBMITTED)
+          Considered(p, false, lm, dirName, fileName, Reasons.ALREADY_SUBMITTED)
         else if (dirOverrides.getOrElse(dirName, !requireOverrides) || fileOverrides.getOrElse(fileName, !requireOverrides))
-          Considered(p, true, Reasons.Nil)
+          Considered(p, true, lm, dirName, fileName, Reasons.Nil)
         else
-          Considered(p, false, Reasons.NEEDS_MANUAL_OVERRIDE)
+          Considered(p, false, lm, dirName, fileName, Reasons.NEEDS_MANUAL_OVERRIDE)
       }
     }
 
