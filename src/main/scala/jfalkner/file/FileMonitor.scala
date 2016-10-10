@@ -37,9 +37,7 @@ trait FileMonitor extends Logs {
     // record all successfully queued jobs
     val submits = queue(events.filter(_.queue)).flatMap { _ match {
         case Success(submit) => Some(submit)
-        case Failure(t) => {
-          System.err.println(t.getMessage); None
-        }
+        case Failure(t) => None
       }
     }
     // save all considered, queued and submitted jobs
