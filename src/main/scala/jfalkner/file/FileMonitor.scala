@@ -1,15 +1,13 @@
 package jfalkner.file
 
 import java.io.File
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.{Files, Path}
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 import jfalkner.logs.Logs
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
-import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
 
 // Logic related to marshall/unmarshall-ing log entries
@@ -107,19 +105,34 @@ trait FileMonitor extends Logs {
       }
     }
 
-    for (f <- walkTree(baseDir.toFile) if matches(f)) yield consider(f.toPath)
+    for (f <- walkTree(baseDir)) yield consider(f)
   }
 
   // custom filter to include files or dirs to consider
   def matches(p: File): Boolean = true
 
-  // nice recursive dir walking from https://rosettacode.org/wiki/Walk_a_directory/Recursively#Scala
-  def walkTree(file: File): Iterable[File] = {
-    val children = new Iterable[File] {
-      def iterator = if (file.isDirectory) file.listFiles.iterator else Iterator.empty
+  def list(p: Path): List[Path] = {
+    Try {
+      val ds = Files.list(p)
+      try {
+        ds.iterator.asScala.toList
+      } finally {
+        ds.close
+      }
+    } match {
+      case Success(ps) => ps
+      case Failure(t) =>
+        System.err.println(s"Can't Files.list($p): ${t.getMessage}")
+        Nil
     }
-    Seq(file) ++: children.flatMap(walkTree(_))
   }
 
+  def walkTree(p: Path): Iterable[Path] = {
+    list(p).flatMap(sp => sp match {
+      case sp if Files.isDirectory(sp) => walkTree(sp)
+      case sp if matches(sp.toFile) => Some(sp)
+      case _ => None
+    })
+  }
 }
 
